@@ -172,6 +172,20 @@ with st.sidebar:
 
     st.divider()
 
+    # --- Modo de visualização ---
+    st.markdown("**🗺 Visualização**")
+    map_mode = st.radio(
+        "Modo", ["Mapa de Calor", "Pontos"], index=0, horizontal=True, label_visibility="collapsed"
+    )
+
+    only_outside = False
+    if map_mode == "Mapa de Calor":
+        only_outside = st.checkbox("Somente pontos fora do perímetro", value=False)
+    else:
+        st.info("💡 Para melhor performance no modo Pontos, recomendamos filtrar por uma **Viatura** e **Data** específicas.")
+
+    st.divider()
+
     # --- Data ---
     data_opts = _opts_data()
     if _cur("sel_data") not in data_opts:
@@ -220,17 +234,6 @@ with st.sidebar:
     if _cur("sel_horario") not in horario_opts:
         st.session_state["sel_horario"] = TODOS
     st.selectbox("🕐 Turno", [TODOS] + horario_opts, key="sel_horario")
-
-    st.divider()
-
-    # --- Modo de visualização ---
-    st.markdown("**🗺 Visualização**")
-    map_mode = st.radio(
-        "Modo", ["Rota", "Mapa de Calor"], horizontal=True, label_visibility="collapsed"
-    )
-
-    if map_mode == "Mapa de Calor":
-        only_outside = st.checkbox("Somente pontos fora do perímetro", value=False)
 
 # ---------------------------------------------------------------------------
 # Filtro final aplicado
@@ -301,7 +304,7 @@ else:
             selected_rows = outside_df.iloc[sel]
 
     # --- Mapa ---
-    if map_mode == "Rota":
+    if map_mode == "Pontos":
         m = render_map(filtered_df, polygon, highlight_rows=selected_rows)
     else:
         m = render_heatmap(filtered_df, polygon, only_outside=only_outside, highlight_rows=selected_rows)
