@@ -66,9 +66,43 @@ with st.sidebar:
     else:
         filtered_df = df_by_cmt[df_by_cmt["Motorista"] == selected_motorista]
 
-# --- Main area: placeholder (Plan 03 will replace this block) ---
+# --- Main area ---
 if selected_date and selected_vp:
-    # TODO Plan 03: render map + OUTSIDE table
-    st.info(f"VP **{selected_vp}** selecionada — mapa será exibido aqui (Plan 03).")
+    # Renderizar mapa com rota e marcadores (UI-02, UI-03, UI-04, D-06)
+    m = render_map(filtered_df, polygon)
+    st_folium(
+        m,
+        use_container_width=True,
+        height=500,
+        returned_objects=[],    # evita re-run ao rolar/dar zoom (Pitfall 1 RESEARCH.md)
+        key="main_map",         # stable key — evita white flash
+    )
+
+    # Tabela de infrações OUTSIDE (UI-05, D-07, D-08, D-09)
+    outside_df = filtered_df[filtered_df["Status"] == "OUTSIDE"]
+
+    # Título dinâmico com nome da VP e contagem (D-08)
+    st.subheader(f"VP-{selected_vp}: {len(outside_df)} registros fora do perímetro")
+
+    if outside_df.empty:
+        # VP sem infrações (D-09)
+        st.success(
+            f"VP {selected_vp} permaneceu dentro do perímetro em todo o turno."
+        )
+    else:
+        # Tabela com exatamente 4 colunas (D-07)
+        st.dataframe(
+            outside_df[["Data_Hora", "Endereco", "Latitude", "Longitude"]],
+            use_container_width=True,
+        )
 else:
+    # Estado inicial: mapa centrado no perímetro + instrução (D-01, D-06)
+    m = render_map(pd.DataFrame(), polygon)
+    st_folium(
+        m,
+        use_container_width=True,
+        height=500,
+        returned_objects=[],
+        key="main_map",
+    )
     st.info("Selecione uma Data e VP na sidebar para visualizar a rota.")
