@@ -5,8 +5,7 @@ import pandas as pd
 import streamlit as st
 
 from data_loader import load_schedule, load_telemetry
-from geo_engine import load_perimeter, apply_geofencing, apply_displacement_window
-
+from geo_engine import load_perimeter, apply_geofencing, apply_displacement_window, filter_by_shift_window
 BASE_DIR = Path(__file__).parent
 DB_PATH = BASE_DIR / "dados_processados.db"
 TABLE_NAME = "telemetria"
@@ -90,6 +89,7 @@ def _process_and_cache() -> pd.DataFrame:
                 "Odômetro": 0.0
             }])
         else:
+            telem_df = filter_by_shift_window(telem_df, row.Horário)
             telem_df = apply_geofencing(telem_df, polygon)
             # Reclassifica OUTSIDE → DESLOCAMENTO nas janelas de 1h do turno
             telem_df = apply_displacement_window(telem_df, row.Horário)

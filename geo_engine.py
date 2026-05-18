@@ -76,6 +76,51 @@ def check_status(lat: float, lon: float, polygon: Polygon) -> str:
     return "INSIDE" if polygon.contains(point) else "OUTSIDE"
 
 
+def filter_by_shift_window(df: pd.DataFrame, horario_str: str) -> pd.DataFrame:
+    """Remove linhas (pontos de GPS) que estão fora do horário do turno.
+    
+    Args:
+        df: DataFrame com coluna 'Data_Hora' (str DD/MM/YYYY HH:MM:SS)
+        horario_str: String do turno no formato 'HH:MM - HH:MM'
+        
+    Returns:
+        DataFrame contendo apenas os pontos dentro do horário do turno.
+    """
+    import re
+    import datetime
+
+    try:
+        matches = re.findall(r"(\d{1,2}:\d{2})", str(horario_str))
+        if len(matches) < 2:
+            return df
+            
+        inicio = datetime.datetime.strptime(matches[0].strip(), "%H:%M").time()
+        fim = datetime.datetime.strptime(matches[-1].strip(), "%H:%M").time()
+    except (ValueError, AttributeError):
+        return df
+
+    gps_times = pd.to_datetime(
+        df["Data_Hora"], format="%d/%m/%Y %H:%M:%S", errors="coerce"
+    ).dt.time
+
+    inicio_min = inicio.hour * 60 + inicio.minute
+    fim_min = fim.hour * 60 + fim.minute
+
+    def _in_shift(gps_time):
+        if pd.isna(gps_time):
+            return True  # Mantém se não conseguir parsear
+            
+        t_min = gps_time.hour * 60 + gps_time.minute
+        if inicio_min <= fim_min:
+            return inicio_min <= t_min <= fim_min
+        else:
+            # Turno vira a noite (ex: 23:00 as 07:00)
+            return t_min >= inicio_min or t_min <= fim_min
+
+    mask = gps_times.apply(_in_shift)
+    return df[mask].reset_index(drop=True)
+
+
 def apply_geofencing(df: pd.DataFrame, polygon: Polygon) -> pd.DataFrame:
     """Aplica verificação de geofencing a cada linha do DataFrame.
 
