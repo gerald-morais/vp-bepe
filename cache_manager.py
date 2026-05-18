@@ -150,8 +150,28 @@ def delete_cache() -> None:
 
     Não levanta erro se o arquivo não existir.
     """
-    if DB_PATH.exists():
-        DB_PATH.unlink()
+    import gc
+    import time
+
+    if not DB_PATH.exists():
+        return
+
+    # Força garbage collection para liberar conexões SQLite abertas (Windows)
+    gc.collect()
+
+    for tentativa in range(5):
+        try:
+            DB_PATH.unlink()
+            return
+        except PermissionError:
+            time.sleep(0.3)
+
+    # Se ainda falhar, reporta via Streamlit
+    st.error(
+        f"❌ Não foi possível deletar o banco de dados. "
+        f"Feche outras abas do app e tente novamente. "
+        f"Caso persista, delete manualmente o arquivo: `{DB_PATH.name}`"
+    )
 
 
 if __name__ == "__main__":

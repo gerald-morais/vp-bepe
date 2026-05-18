@@ -90,7 +90,8 @@ def filter_by_shift_window(df: pd.DataFrame, horario_str: str) -> pd.DataFrame:
     import datetime
 
     try:
-        matches = re.findall(r"(\d{1,2}:\d{2})", str(horario_str))
+        horario_norm = str(horario_str).replace("h", ":").replace("H", ":")
+        matches = re.findall(r"(\d{1,2}:\d{2})", horario_norm)
         if len(matches) < 2:
             return df
             
@@ -174,7 +175,8 @@ def apply_displacement_window(df: pd.DataFrame, horario_str: str) -> pd.DataFram
     import re
     # Extrai horários no formato HH:MM usando regex
     try:
-        matches = re.findall(r"(\d{1,2}:\d{2})", str(horario_str))
+        horario_norm = str(horario_str).replace("h", ":").replace("H", ":")
+        matches = re.findall(r"(\d{1,2}:\d{2})", horario_norm)
         if len(matches) < 2:
             return df
             
