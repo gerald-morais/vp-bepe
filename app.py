@@ -76,7 +76,9 @@ for k, v in FILTER_DEFAULTS.items():
 # ---------------------------------------------------------------------------
 # Helper: aplica filtros ao df global (exclui um filtro para cross-filter)
 # ---------------------------------------------------------------------------
+@st.cache_data(show_spinner=False)
 def _apply(
+    _df: pd.DataFrame,
     data=None,
     vp=None,
     pel=None,
@@ -84,22 +86,22 @@ def _apply(
     motorista=None,
     horario=None,
 ) -> pd.DataFrame:
-    mask = pd.Series(True, index=df.index)
+    mask = pd.Series(True, index=_df.index)
 
     if data and data != TODOS:
-        mask &= df["Data"] == data
+        mask &= _df["Data"] == data
     if vp and vp != TODOS:
-        mask &= df["VP"] == vp
+        mask &= _df["VP"] == vp
     if pel and pel != TODOS:
-        mask &= df["PEL"] == pel
+        mask &= _df["PEL"] == pel
     if cmt and cmt != TODOS:
-        mask &= df["CMT"] == cmt
+        mask &= _df["CMT"] == cmt
     if motorista and motorista != TODOS:
-        mask &= df["Motorista"] == motorista
+        mask &= _df["Motorista"] == motorista
     if horario and horario != TODOS:
-        mask &= df["Horário"] == horario
+        mask &= _df["Horário"] == horario
 
-    return df[mask]
+    return _df[mask]
 
 
 def _cur(k):
@@ -108,37 +110,37 @@ def _cur(k):
 
 # Opções de cada filtro: aplicar TODOS os outros filtros (cross-filter bidirecional)
 def _opts_data():
-    tmp = _apply(vp=_cur("sel_vp"), pel=_cur("sel_pel"), cmt=_cur("sel_cmt"),
+    tmp = _apply(_df=df, vp=_cur("sel_vp"), pel=_cur("sel_pel"), cmt=_cur("sel_cmt"),
                  motorista=_cur("sel_motorista"), horario=_cur("sel_horario"))
     return sorted(tmp["Data"].unique().tolist())
 
 
 def _opts_vp():
-    tmp = _apply(data=_cur("sel_data"), pel=_cur("sel_pel"), cmt=_cur("sel_cmt"),
+    tmp = _apply(_df=df, data=_cur("sel_data"), pel=_cur("sel_pel"), cmt=_cur("sel_cmt"),
                  motorista=_cur("sel_motorista"), horario=_cur("sel_horario"))
     return sorted(tmp["VP"].unique().tolist())
 
 
 def _opts_pel():
-    tmp = _apply(data=_cur("sel_data"), vp=_cur("sel_vp"), cmt=_cur("sel_cmt"),
+    tmp = _apply(_df=df, data=_cur("sel_data"), vp=_cur("sel_vp"), cmt=_cur("sel_cmt"),
                  motorista=_cur("sel_motorista"), horario=_cur("sel_horario"))
     return sorted(tmp["PEL"].dropna().unique().tolist())
 
 
 def _opts_cmt():
-    tmp = _apply(data=_cur("sel_data"), vp=_cur("sel_vp"), pel=_cur("sel_pel"),
+    tmp = _apply(_df=df, data=_cur("sel_data"), vp=_cur("sel_vp"), pel=_cur("sel_pel"),
                  motorista=_cur("sel_motorista"), horario=_cur("sel_horario"))
     return sorted(tmp["CMT"].unique().tolist())
 
 
 def _opts_motorista():
-    tmp = _apply(data=_cur("sel_data"), vp=_cur("sel_vp"), pel=_cur("sel_pel"),
+    tmp = _apply(_df=df, data=_cur("sel_data"), vp=_cur("sel_vp"), pel=_cur("sel_pel"),
                  cmt=_cur("sel_cmt"), horario=_cur("sel_horario"))
     return sorted(tmp["Motorista"].unique().tolist())
 
 
 def _opts_horario():
-    tmp = _apply(data=_cur("sel_data"), vp=_cur("sel_vp"), pel=_cur("sel_pel"),
+    tmp = _apply(_df=df, data=_cur("sel_data"), vp=_cur("sel_vp"), pel=_cur("sel_pel"),
                  cmt=_cur("sel_cmt"), motorista=_cur("sel_motorista"))
     return sorted(tmp["Horário"].unique().tolist())
 
@@ -234,6 +236,7 @@ with st.sidebar:
 # Filtro final aplicado
 # ---------------------------------------------------------------------------
 filtered_df = _apply(
+    _df=df,
     data=_cur("sel_data"),
     vp=_cur("sel_vp"),
     pel=_cur("sel_pel"),
