@@ -10,8 +10,9 @@ See: .planning/PROJECT.md (updated 2026-05-18)
 ## Current Phase
 
 **Phase 1: Pipeline de Dados e Cache**
-Status: Not started
+Status: Context gathered — ready to plan
 Goal: Motor de processamento completo — ler planilha mestre, limpar telemetria legada, verificar geofencing e cachear no SQLite.
+Context: .planning/phases/01-pipeline-de-dados-e-cache/01-CONTEXT.md
 
 ## Completed Phases
 
