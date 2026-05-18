@@ -40,7 +40,7 @@
 
 **Plans:** 3 plans
 - [x] 02-01-PLAN.md — map_renderer.py: módulo puro Folium com render_map(), polígono KML, PolyLine, CircleMarkers coloridos ✓ (2026-05-18)
-- [ ] 02-02-PLAN.md — app.py skeleton: page config, carregamento de dados, sidebar com 4 filtros em cascata
+- [x] 02-02-PLAN.md — app.py skeleton: page config, carregamento de dados, sidebar com 4 filtros em cascata ✓ (2026-05-18)
 - [ ] 02-03-PLAN.md — integração: wire render_map em app.py, título dinâmico, tabela OUTSIDE, todos os estados
 
 **Success Criteria:**
