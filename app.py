@@ -158,6 +158,7 @@ with st.sidebar:
         with col1:
             if st.button("🔄 Recarregar Dados", use_container_width=True):
                 delete_cache()
+                st.cache_data.clear()
                 st.rerun()
         with col2:
             if st.button("🗑 Limpar Filtros", use_container_width=True):
@@ -165,10 +166,17 @@ with st.sidebar:
                     st.session_state[k] = v
                 st.rerun()
     else:
-        if st.button("🗑 Limpar Filtros", use_container_width=True):
-            for k, v in FILTER_DEFAULTS.items():
-                st.session_state[k] = v
-            st.rerun()
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🧹 Limpar Caches", use_container_width=True):
+                st.cache_data.clear()
+                st.cache_resource.clear()
+                st.rerun()
+        with col2:
+            if st.button("🗑 Limpar Filtros", use_container_width=True):
+                for k, v in FILTER_DEFAULTS.items():
+                    st.session_state[k] = v
+                st.rerun()
 
     st.divider()
 
