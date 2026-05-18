@@ -12,6 +12,7 @@ DB_PATH = BASE_DIR / "dados_processados.db"
 TABLE_NAME = "telemetria"
 
 
+@st.cache_data(show_spinner="Carregando dados da memória...")
 def get_or_process_data() -> pd.DataFrame:
     """Ponto de entrada único para app.py.
 
