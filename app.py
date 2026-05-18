@@ -1,0 +1,74 @@
+from pathlib import Path
+
+import pandas as pd
+import streamlit as st
+from streamlit_folium import st_folium
+
+from cache_manager import delete_cache, get_or_process_data
+from geo_engine import load_perimeter
+from map_renderer import render_map
+
+# Page config DEVE ser a primeira chamada st.* executável
+st.set_page_config(page_title="VP-GPS — Rastreador de Viaturas", layout="wide")
+
+st.title("Rastreador de Viaturas — VP-GPS")
+
+# Carregamento de polígono e dados
+# load_perimeter() propaga FileNotFoundError / ValueError nativamente (T-02-04)
+polygon = load_perimeter()
+df = get_or_process_data()
+
+# Guard: DataFrame vazio — evita crash em df["Data"].unique() com df vazio (Pitfall 3)
+if df.empty:
+    st.warning(
+        "Nenhum dado processado. Verifique os arquivos em `dados_vps/` "
+        "e clique em **Recarregar Banco de Dados**."
+    )
+    st.stop()
+
+# Sidebar com filtros em cascata (UI-01, D-02, D-03)
+with st.sidebar:
+    st.header("Filtros")
+
+    if st.button("Recarregar Banco de Dados", use_container_width=True):
+        delete_cache()
+        st.rerun()
+
+    st.divider()
+
+    # Nível 1: Data
+    available_dates = sorted(df["Data"].unique())
+    selected_date = st.selectbox("Data", options=available_dates)
+
+    # Nível 2: VP — apenas VPs escaladas na data selecionada (D-02)
+    df_by_date = df[df["Data"] == selected_date]
+    available_vps = sorted(df_by_date["VP"].unique().tolist())
+    selected_vp = st.selectbox("VP", options=available_vps)
+
+    # Nível 3: CMT — opcional (D-03), restrito à VP selecionada
+    df_by_vp = df_by_date[df_by_date["VP"] == selected_vp]
+    available_cmts = sorted(df_by_vp["CMT"].unique().tolist())
+    selected_cmt = st.selectbox("CMT (opcional)", options=["Todos"] + available_cmts)
+
+    # Nível 4: Motorista — opcional (D-03), restrito ao CMT selecionado
+    if selected_cmt == "Todos":
+        df_by_cmt = df_by_vp
+    else:
+        df_by_cmt = df_by_vp[df_by_vp["CMT"] == selected_cmt]
+
+    available_motoristas = sorted(df_by_cmt["Motorista"].unique().tolist())
+    selected_motorista = st.selectbox(
+        "Motorista (opcional)", options=["Todos"] + available_motoristas
+    )
+
+    if selected_motorista == "Todos":
+        filtered_df = df_by_cmt
+    else:
+        filtered_df = df_by_cmt[df_by_cmt["Motorista"] == selected_motorista]
+
+# --- Main area: placeholder (Plan 03 will replace this block) ---
+if selected_date and selected_vp:
+    # TODO Plan 03: render map + OUTSIDE table
+    st.info(f"VP **{selected_vp}** selecionada — mapa será exibido aqui (Plan 03).")
+else:
+    st.info("Selecione uma Data e VP na sidebar para visualizar a rota.")
