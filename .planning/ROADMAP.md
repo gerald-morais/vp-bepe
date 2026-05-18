@@ -6,7 +6,7 @@
 
 ---
 
-## Phase 1: Pipeline de Dados e Cache
+## Phase 1: Pipeline de Dados e Cache ✓ Complete (2026-05-18)
 
 **Goal:** Motor de processamento completo — ler planilha mestre, limpar arquivos de telemetria legados, verificar geofencing e cachear resultado no SQLite.
 
@@ -38,10 +38,10 @@
 **Requirements:**
 - UI-01, UI-02, UI-03, UI-04, UI-05
 
-**Plans:**
-1. `app.py` — estrutura principal do Streamlit, sidebar com filtros e lógica de cascata
-2. `map_renderer.py` — renderização do mapa Folium com polígono KML, rota e marcadores coloridos
-3. Tabela de registros OUTSIDE integrada ao `app.py`
+**Plans:** 3 plans
+- [x] 02-01-PLAN.md — map_renderer.py: módulo puro Folium com render_map(), polígono KML, PolyLine, CircleMarkers coloridos ✓ (2026-05-18)
+- [ ] 02-02-PLAN.md — app.py skeleton: page config, carregamento de dados, sidebar com 4 filtros em cascata
+- [ ] 02-03-PLAN.md — integração: wire render_map em app.py, título dinâmico, tabela OUTSIDE, todos os estados
 
 **Success Criteria:**
 1. Selecionar uma data na sidebar filtra a lista de VPs para apenas as escaladas naquele dia
@@ -88,4 +88,4 @@
 
 ---
 *Roadmap created: 2026-05-18*
-*Last updated: 2026-05-18 after initialization*
+*Last updated: 2026-05-18 after Phase 2 planning*
