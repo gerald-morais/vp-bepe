@@ -50,7 +50,7 @@ with st.sidebar:
     available_cmts = sorted(df_by_vp["CMT"].unique().tolist())
     selected_cmt = st.selectbox("CMT (opcional)", options=["Todos"] + available_cmts)
 
-    # Nível 4: Motorista — opcional (D-03), restrito ao CMT selecionado
+    # Nível 4: Motorista — opcional, restrito ao CMT selecionado
     if selected_cmt == "Todos":
         df_by_cmt = df_by_vp
     else:
@@ -62,9 +62,21 @@ with st.sidebar:
     )
 
     if selected_motorista == "Todos":
-        filtered_df = df_by_cmt
+        df_by_motorista = df_by_cmt
     else:
-        filtered_df = df_by_cmt[df_by_cmt["Motorista"] == selected_motorista]
+        df_by_motorista = df_by_cmt[df_by_cmt["Motorista"] == selected_motorista]
+
+    # Nível 5: Faixa de Horário — opcional, baseada nos turnos disponíveis
+    # A coluna "Horário" contém a faixa do turno da escala (ex: "07:00 - 16:30")
+    available_turnos = sorted(df_by_motorista["Horário"].unique().tolist())
+    selected_turno = st.selectbox(
+        "Faixa de Horário (opcional)", options=["Todos"] + available_turnos
+    )
+
+    if selected_turno == "Todos":
+        filtered_df = df_by_motorista
+    else:
+        filtered_df = df_by_motorista[df_by_motorista["Horário"] == selected_turno]
 
 # --- Main area ---
 if selected_date and selected_vp:
@@ -81,8 +93,9 @@ if selected_date and selected_vp:
     # Tabela de infrações OUTSIDE (UI-05, D-07, D-08, D-09)
     outside_df = filtered_df[filtered_df["Status"] == "OUTSIDE"]
 
-    # Título dinâmico com nome da VP e contagem (D-08)
-    st.subheader(f"VP-{selected_vp}: {len(outside_df)} registros fora do perímetro")
+    # Título dinâmico com nome da VP, turno selecionado e contagem (D-08)
+    turno_label = f" | Turno {selected_turno}" if selected_turno != "Todos" else ""
+    st.subheader(f"VP-{selected_vp}{turno_label}: {len(outside_df)} registros fora do perímetro")
 
     if outside_df.empty:
         # VP sem infrações (D-09)

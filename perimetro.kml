@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>AREA EXTERNA PAU COMEU</name>
+    <Style id="poly-3949AB-1200-77-nodesc-normal">
+      <LineStyle>
+        <color>ffab4939</color>
+        <width>1.2</width>
+      </LineStyle>
+      <PolyStyle>
+        <color>4dab4939</color>
+        <fill>1</fill>
+        <outline>1</outline>
+      </PolyStyle>
+      <BalloonStyle>
+        <text><![CDATA[<h3>$[name]</h3>]]></text>
+      </BalloonStyle>
+    </Style>
+    <Style id="poly-3949AB-1200-77-nodesc-highlight">
+      <LineStyle>
+        <color>ffab4939</color>
+        <width>1.8</width>
+      </LineStyle>
+      <PolyStyle>
+        <color>4dab4939</color>
+        <fill>1</fill>
+        <outline>1</outline>
+      </PolyStyle>
+      <BalloonStyle>
+        <text><![CDATA[<h3>$[name]</h3>]]></text>
+      </BalloonStyle>
+    </Style>
+    <StyleMap id="poly-3949AB-1200-77-nodesc">
+      <Pair>
+        <key>normal</key>
+        <styleUrl>#poly-3949AB-1200-77-nodesc-normal</styleUrl>
+      </Pair>
+      <Pair>
+        <key>highlight</key>
+        <styleUrl>#poly-3949AB-1200-77-nodesc-highlight</styleUrl>
+      </Pair>
+    </StyleMap>
+    <Placemark>
+      <name>perimetro</name>
+      <styleUrl>#poly-3949AB-1200-77-nodesc</styleUrl>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <tessellate>1</tessellate>
+            <coordinates>
+              -43.9200893,-19.9264662,0
+              -43.924295,-19.9320742,0
+              -43.9194455,-19.9344545,0
+              -43.9171281,-19.9358262,0
+              -43.9141669,-19.9341721,0
+              -43.913609,-19.9278783,0
+              -43.9200893,-19.9264662,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+  </Document>
+</kml>
