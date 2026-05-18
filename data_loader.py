@@ -18,21 +18,16 @@ def load_schedule() -> pd.DataFrame:
     path = BASE_DIR / "planilha_vp.xlsx"
     df = pd.read_excel(path, engine="openpyxl")
 
-    mask_sem_registro = df["presente?"].astype(str).str.contains(
-        "sem registro", case=False, na=False
-    )
-    df = df[~mask_sem_registro].copy()
-
     # Extrai o primeiro número inteiro da coluna "Arquivo".
     # Suporta valores simples ('78') e compostos ('78 - 78.1').
     df["Arquivo"] = (
         df["Arquivo"]
         .astype(str)
         .str.extract(r"(\d+)", expand=False)
-        .astype(int)
     )
+    df["Arquivo"] = pd.to_numeric(df["Arquivo"], errors="coerce")
 
-    return df[["Data", "Horário", "VP", "CMT", "Motorista", "Arquivo"]].reset_index(drop=True)
+    return df[["Data", "Horário", "VP", "PEL", "CMT", "Motorista", "Arquivo"]].reset_index(drop=True)
 
 
 def load_telemetry(arquivo_num: int) -> pd.DataFrame:

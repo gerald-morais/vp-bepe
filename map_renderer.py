@@ -3,20 +3,17 @@ import pandas as pd
 from shapely.geometry import Polygon
 
 
-def render_map(df: pd.DataFrame, polygon: Polygon) -> folium.Map:
-    """Constrói mapa Folium com perímetro, rota e marcadores coloridos.
-
-    Recebe um DataFrame filtrado e o polígono do perímetro autorizado,
-    retornando um objeto folium.Map configurado e pronto para uso com
-    st_folium(). Não importa streamlit nem outros módulos do projeto.
+def render_map(df: pd.DataFrame, polygon: Polygon, highlight_rows: pd.DataFrame = None) -> folium.Map:
+    """Instancia o mapa base e orquestra a adição de camadas e marcadores.
 
     Args:
-        df: DataFrame filtrado com 10 colunas
+        df: DataFrame filtrado com dados de telemetria. Deve conter as colunas
             (VP, CMT, Motorista, Data, Horário, Data_Hora, Endereco,
             Latitude, Longitude, Status). Se vazio, renderiza apenas
             o perímetro (estado inicial D-01/D-06).
         polygon: Shapely Polygon do perímetro de atuação, obtido de
             geo_engine.load_perimeter(). Coords em ordem (lon, lat).
+        highlight_rows: DataFrame contendo as linhas selecionadas para focar.
 
     Returns:
         Objeto folium.Map configurado com polígono KML desenhado,
@@ -27,14 +24,38 @@ def render_map(df: pd.DataFrame, polygon: Polygon) -> folium.Map:
 
     _add_perimeter(m, polygon)
 
-    if not df.empty:
-        _add_route(m, df)
-        _add_markers(m, df)
-        bounds = _compute_bounds(polygon, df)
+    df_gps = df[df["Status"] != "VIATURA SEM GPS"].copy() if not df.empty else df
+
+    if not df_gps.empty:
+        _add_route(m, df_gps)
+        _add_markers(m, df_gps)
+        bounds = _compute_bounds(polygon, df_gps)
     else:
         bounds = _compute_bounds(polygon)
 
-    m.fit_bounds(bounds)
+    if highlight_rows is not None and not highlight_rows.empty:
+        hl_bounds = []
+        for _, row in highlight_rows.iterrows():
+            lat, lon = row["Latitude"], row["Longitude"]
+            folium.Marker(
+                [lat, lon],
+                icon=folium.Icon(color="black", icon="star"),
+                tooltip=f"Ponto Selecionado: {row['Data_Hora']} ({row['Status']})"
+            ).add_to(m)
+            hl_bounds.append([lat, lon])
+            
+        if len(hl_bounds) == 1:
+            lat, lon = hl_bounds[0]
+            m.fit_bounds([[lat - 0.0015, lon - 0.0015], [lat + 0.0015, lon + 0.0015]])
+        else:
+            min_lat = min(b[0] for b in hl_bounds) - 0.0015
+            min_lon = min(b[1] for b in hl_bounds) - 0.0015
+            max_lat = max(b[0] for b in hl_bounds) + 0.0015
+            max_lon = max(b[1] for b in hl_bounds) + 0.0015
+            m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]])
+    else:
+        m.fit_bounds(bounds)
+        
     return m
 
 
@@ -103,19 +124,29 @@ def _add_markers(m: folium.Map, df: pd.DataFrame) -> None:
             Status, Data_Hora e Endereco.
     """
     for _, row in df.iterrows():
-        is_outside = row["Status"] == "OUTSIDE"
+        if pd.isna(row["Latitude"]) or pd.isna(row["Longitude"]):
+            continue
+            
+        status = row["Status"]
+        if status == "OUTSIDE":
+            color, fill_color, radius, opacity = "#c0392b", "#e74c3c", 6, 0.9
+        elif status == "DESLOCAMENTO":
+            color, fill_color, radius, opacity = "#e67e22", "#f39c12", 4, 0.85
+        else:  # INSIDE
+            color, fill_color, radius, opacity = "#27ae60", "#2ecc71", 4, 0.6
+
         folium.CircleMarker(
             location=[row["Latitude"], row["Longitude"]],
-            radius=6 if is_outside else 4,
-            color="#c0392b" if is_outside else "#27ae60",
+            radius=radius,
+            color=color,
             fill=True,
-            fill_color="#e74c3c" if is_outside else "#2ecc71",
-            fill_opacity=0.9 if is_outside else 0.6,
+            fill_color=fill_color,
+            fill_opacity=opacity,
             popup=folium.Popup(
                 f"<b>{row['Data_Hora']}</b><br>{row['Endereco']}",
                 max_width=250,
             ),
-            tooltip=row["Status"],
+            tooltip=status,
         ).add_to(m)
 
 
@@ -142,14 +173,76 @@ def _compute_bounds(
     min_lon, max_lon = min(poly_lons), max(poly_lons)
 
     if df is not None and not df.empty:
-        min_lat = min(min_lat, df["Latitude"].min())
-        max_lat = max(max_lat, df["Latitude"].max())
-        min_lon = min(min_lon, df["Longitude"].min())
-        max_lon = max(max_lon, df["Longitude"].max())
+        valid_df = df.dropna(subset=["Latitude", "Longitude"])
+        if not valid_df.empty:
+            min_lat = min(min_lat, valid_df["Latitude"].min())
+            max_lat = max(max_lat, valid_df["Latitude"].max())
+            min_lon = min(min_lon, valid_df["Longitude"].min())
+            max_lon = max(max_lon, valid_df["Longitude"].max())
 
     return [[min_lat, min_lon], [max_lat, max_lon]]
 
 
+def render_heatmap(df: pd.DataFrame, polygon: Polygon, only_outside: bool = False, highlight_rows: pd.DataFrame = None) -> folium.Map:
+    """Instancia o mapa com um HeatMap dos pontos em vez de rotas e marcadores.
+
+    Args:
+        df: DataFrame filtrado com dados de telemetria.
+        polygon: Shapely Polygon do perímetro autorizado.
+        only_outside: Se True, usa apenas pontos OUTSIDE no heatmap.
+        highlight_rows: DataFrame contendo as linhas selecionadas para focar.
+
+    Returns:
+        Objeto folium.Map com polígono e camada HeatMap.
+    """
+    from folium.plugins import HeatMap
+
+    m = folium.Map(tiles="OpenStreetMap")
+    _add_perimeter(m, polygon)
+
+    df_gps = df[df["Status"] != "VIATURA SEM GPS"].copy() if not df.empty else df
+
+    if not df_gps.empty:
+        source = df_gps[df_gps["Status"] == "OUTSIDE"] if only_outside else df_gps
+        heat_data = (
+            source[["Latitude", "Longitude"]]
+            .dropna()
+            .values
+            .tolist()
+        )
+        if heat_data:
+            HeatMap(heat_data, radius=15, blur=12, max_zoom=14).add_to(m)
+        bounds = _compute_bounds(polygon, df_gps)
+    else:
+        bounds = _compute_bounds(polygon)
+
+    if highlight_rows is not None and not highlight_rows.empty:
+        hl_bounds = []
+        for _, row in highlight_rows.iterrows():
+            lat, lon = row["Latitude"], row["Longitude"]
+            folium.Marker(
+                [lat, lon],
+                icon=folium.Icon(color="black", icon="star"),
+                tooltip=f"Ponto Selecionado: {row['Data_Hora']} ({row['Status']})"
+            ).add_to(m)
+            hl_bounds.append([lat, lon])
+            
+        if len(hl_bounds) == 1:
+            lat, lon = hl_bounds[0]
+            m.fit_bounds([[lat - 0.0015, lon - 0.0015], [lat + 0.0015, lon + 0.0015]])
+        else:
+            min_lat = min(b[0] for b in hl_bounds) - 0.0015
+            min_lon = min(b[1] for b in hl_bounds) - 0.0015
+            max_lat = max(b[0] for b in hl_bounds) + 0.0015
+            max_lon = max(b[1] for b in hl_bounds) + 0.0015
+            m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]])
+    else:
+        m.fit_bounds(bounds)
+
+    return m
+
+
 if __name__ == "__main__":
     print("map_renderer.py importado com sucesso.")
-    print("Funções exportadas: render_map")
+    print("Funções exportadas: render_map, render_heatmap")
+

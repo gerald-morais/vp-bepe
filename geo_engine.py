@@ -104,3 +104,72 @@ def apply_geofencing(df: pd.DataFrame, polygon: Polygon) -> pd.DataFrame:
 
     df["Status"] = df.apply(_row_status, axis=1)
     return df
+
+
+def apply_displacement_window(df: pd.DataFrame, horario_str: str) -> pd.DataFrame:
+    """Reclassifica OUTSIDE → DESLOCAMENTO nos períodos de deslocamento do turno.
+
+    Os primeiros 60 minutos após o início do turno (batalhão → perímetro) e
+    os últimos 60 minutos antes do fim (perímetro → batalhão) são considerados
+    deslocamento operacional legítimo e não contam como infração.
+
+    Trata corretamente horários que cruzam a meia-noite (ex: 15:00 - 01:30).
+
+    Args:
+        df: DataFrame com colunas 'Data_Hora' (str DD/MM/YYYY HH:MM:SS)
+            e 'Status' (INSIDE | OUTSIDE).
+        horario_str: String do turno no formato 'HH:MM - HH:MM', ex: '07:00 - 16:30'.
+
+    Returns:
+        Cópia do DataFrame com OUTSIDE → DESLOCAMENTO nas janelas de deslocamento.
+        Linhas INSIDE nunca são alteradas.
+    """
+    import datetime
+
+    import re
+    # Extrai horários no formato HH:MM usando regex
+    try:
+        matches = re.findall(r"(\d{1,2}:\d{2})", str(horario_str))
+        if len(matches) < 2:
+            return df
+            
+        inicio = datetime.datetime.strptime(matches[0].strip(), "%H:%M").time()
+        fim = datetime.datetime.strptime(matches[-1].strip(), "%H:%M").time()
+    except (ValueError, AttributeError):
+        return df
+
+    inicio_min = inicio.hour * 60 + inicio.minute
+    fim_min = fim.hour * 60 + fim.minute
+
+    gps_times = pd.to_datetime(
+        df["Data_Hora"], format="%d/%m/%Y %H:%M:%S", errors="coerce"
+    ).dt.time
+
+    df = df.copy()
+
+    def _reclassificar(status: str, gps_time) -> str:
+        if status != "OUTSIDE":
+            return status
+        if gps_time is None or not hasattr(gps_time, "hour"):
+            return status
+            
+        t_min = gps_time.hour * 60 + gps_time.minute
+        
+        # Aritmética modular (1440 min = 24h) resolve a virada da meia-noite.
+        # Diferença positiva de 'inicio' até 't_min':
+        diff_from_inicio = (t_min - inicio_min) % 1440
+        if diff_from_inicio <= 60:
+            return "DESLOCAMENTO"
+            
+        # Diferença positiva de 't_min' até 'fim':
+        diff_to_fim = (fim_min - t_min) % 1440
+        if diff_to_fim <= 60:
+            return "DESLOCAMENTO"
+            
+        return status
+
+    df["Status"] = [
+        _reclassificar(s, t) for s, t in zip(df["Status"], gps_times)
+    ]
+    return df
+

@@ -5,7 +5,7 @@ import pandas as pd
 import streamlit as st
 
 from data_loader import load_schedule, load_telemetry
-from geo_engine import load_perimeter, apply_geofencing
+from geo_engine import load_perimeter, apply_geofencing, apply_displacement_window
 
 BASE_DIR = Path(__file__).parent
 DB_PATH = BASE_DIR / "dados_processados.db"
@@ -64,28 +64,45 @@ def _process_and_cache() -> pd.DataFrame:
             text=f"Processando VP {vp_name} ({idx}/{total_vps})..."
         )
 
-        try:
-            telem_df = load_telemetry(arquivo_num)
-        except FileNotFoundError:
-            st.warning(
-                f"VP **{vp_name}**: arquivo `planilha {arquivo_num}.xls` "
-                f"não encontrado. Pulando esta viatura."
-            )
-            continue
+        has_gps = True
+        
+        if pd.isna(arquivo_num):
+            has_gps = False
+        else:
+            try:
+                telem_df = load_telemetry(int(arquivo_num))
+                if telem_df.empty:
+                    has_gps = False
+            except Exception:
+                has_gps = False
 
-        if telem_df.empty:
-            st.info(
-                f"VP **{vp_name}**: planilha {arquivo_num}.xls sem registros "
-                f"('Não foram encontrados resultados.'). Pulando."
-            )
-            continue
-
-        telem_df = apply_geofencing(telem_df, polygon)
+        if not has_gps:
+            # Cria registro sintético com status VIATURA SEM GPS
+            telem_df = pd.DataFrame([{
+                "Data_Hora": "Viatura sem GPS",
+                "Status": "VIATURA SEM GPS",
+                "Latitude": None,
+                "Longitude": None,
+                "Velocidade": 0.0,
+                "Ignição": "Desligada",
+                "Odômetro": 0.0
+            }])
+        else:
+            telem_df = apply_geofencing(telem_df, polygon)
+            # Reclassifica OUTSIDE → DESLOCAMENTO nas janelas de 1h do turno
+            telem_df = apply_displacement_window(telem_df, row.Horário)
 
         telem_df["VP"] = vp_name
+        telem_df["PEL"] = row.PEL
         telem_df["CMT"] = row.CMT
         telem_df["Motorista"] = row.Motorista
-        telem_df["Data"] = str(row.Data)
+        
+        try:
+            data_str = pd.to_datetime(row.Data).strftime("%d/%m/%Y")
+        except Exception:
+            data_str = str(row.Data)
+            
+        telem_df["Data"] = data_str
         telem_df["Horário"] = row.Horário
 
         all_frames.append(telem_df)
@@ -94,14 +111,14 @@ def _process_and_cache() -> pd.DataFrame:
 
     if not all_frames:
         return pd.DataFrame(columns=[
-            "VP", "CMT", "Motorista", "Data", "Horário",
+            "PEL", "VP", "CMT", "Motorista", "Data", "Horário",
             "Data_Hora", "Endereco", "Latitude", "Longitude", "Status"
         ])
 
     consolidated = pd.concat(all_frames, ignore_index=True)
 
     col_order = [
-        "VP", "CMT", "Motorista", "Data", "Horário",
+        "PEL", "VP", "CMT", "Motorista", "Data", "Horário",
         "Data_Hora", "Endereco", "Latitude", "Longitude", "Status"
     ]
     consolidated = consolidated[col_order]
