@@ -5,6 +5,35 @@ import pandas as pd
 BASE_DIR = Path(__file__).parent
 
 
+# Mapeamento canônico dos turnos: normaliza qualquer variação da planilha
+# para o nome oficial exibido no dropdown e usado nos filtros de horário.
+_SHIFT_MAP: dict[str, str] = {
+    # Turno 1 — variações possíveis na planilha
+    "07:00 - 16:30": "07h00 às 15h00",
+    "7:00 - 16:30":  "07h00 às 15h00",
+    "07h00 as 16h30": "07h00 às 15h00",
+    "07h00 às 16h30": "07h00 às 15h00",
+    "07h00 as 15h00": "07h00 às 15h00",
+    # Turno 2
+    "15:00 - 01:30": "15h00 às 23h00",
+    "15:00 - 1:30":  "15h00 às 23h00",
+    "15h00 as 01h30": "15h00 às 23h00",
+    "15h00 às 01h30": "15h00 às 23h00",
+    "15h00 as 23h00": "15h00 às 23h00",
+    # Turno 3
+    "23:00 - 08:00": "23h00 às 07h00",
+    "23:00 - 8:00":  "23h00 às 07h00",
+    "23h00 as 08h":  "23h00 às 07h00",
+    "23h00 às 08h":  "23h00 às 07h00",
+    "23h00 as 07h00": "23h00 às 07h00",
+}
+
+
+def _normalize_shift(valor: str) -> str:
+    """Retorna o nome canônico do turno, ou o valor original se não reconhecido."""
+    return _SHIFT_MAP.get(str(valor).strip(), str(valor).strip())
+
+
 def load_schedule() -> pd.DataFrame:
     """Lê planilha_vp.xlsx e retorna escalas ativas.
 
@@ -26,6 +55,9 @@ def load_schedule() -> pd.DataFrame:
         .str.extract(r"(\d+)", expand=False)
     )
     df["Arquivo"] = pd.to_numeric(df["Arquivo"], errors="coerce")
+
+    # Normaliza os nomes dos turnos para o formato canônico
+    df["Horário"] = df["Horário"].apply(_normalize_shift)
 
     return df[["Data", "Horário", "VP", "PEL", "CMT", "Motorista", "Arquivo"]].reset_index(drop=True)
 
