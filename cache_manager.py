@@ -80,6 +80,7 @@ def _process_and_cache() -> pd.DataFrame:
             # Cria registro sintético com status VIATURA SEM GPS
             telem_df = pd.DataFrame([{
                 "Data_Hora": "Viatura sem GPS",
+                "Endereco": "Sem dados",
                 "Status": "VIATURA SEM GPS",
                 "Latitude": None,
                 "Longitude": None,
