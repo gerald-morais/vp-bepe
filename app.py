@@ -301,7 +301,9 @@ else:
     if "tabela_fora" in st.session_state:
         sel = st.session_state["tabela_fora"].get("selection", {}).get("rows", [])
         if sel:
-            selected_rows = outside_df.iloc[sel]
+            valid_sel = [i for i in sel if i < len(outside_df)]
+            if valid_sel:
+                selected_rows = outside_df.iloc[valid_sel]
 
     # --- Mapa ---
     if map_mode == "Pontos":

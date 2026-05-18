@@ -4,7 +4,6 @@ import streamlit as st
 from shapely.geometry import Polygon
 
 
-@st.cache_resource(hash_funcs={Polygon: lambda _: "poly"}, show_spinner=False)
 def render_map(df: pd.DataFrame, polygon: Polygon, highlight_rows: pd.DataFrame = None) -> folium.Map:
     """Instancia o mapa base e orquestra a adição de camadas e marcadores.
 
@@ -185,7 +184,6 @@ def _compute_bounds(
     return [[min_lat, min_lon], [max_lat, max_lon]]
 
 
-@st.cache_resource(hash_funcs={Polygon: lambda _: "poly"}, show_spinner=False)
 def render_heatmap(df: pd.DataFrame, polygon: Polygon, only_outside: bool = False, highlight_rows: pd.DataFrame = None) -> folium.Map:
     """Instancia o mapa com um HeatMap dos pontos em vez de rotas e marcadores.
 
