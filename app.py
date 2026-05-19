@@ -329,12 +329,6 @@ else:
         returned_objects=[], key="main_map",
     )
 
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Total de pontos", total_pontos)
-    m2.metric("🟢 Dentro", n_inside)
-    m3.metric("🟠 Deslocamento", n_desl)
-    m4.metric("🔴 Fora", n_outside)
-
     # --- Tabela de infrações ---
     vp_label = _cur("sel_vp") if _cur("sel_vp") != TODOS else "todas as VPs"
     st.subheader(f"{vp_label}: {n_outside} registros fora do perímetro")
